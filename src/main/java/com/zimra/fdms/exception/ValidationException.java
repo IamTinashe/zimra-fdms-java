@@ -7,11 +7,15 @@ public class ValidationException extends FdmsException {
     private final String field;
 
     public ValidationException(String message) {
-        this(message, null);
+        this(message, "VALIDATION_ERROR", null);
     }
 
     public ValidationException(String message, String field) {
-        super(message, "VALIDATION_ERROR");
+        this(message, "VALIDATION_ERROR", field);
+    }
+    
+    public ValidationException(String message, String code, String field) {
+        super(message, code);
         this.field = field;
     }
 
