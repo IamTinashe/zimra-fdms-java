@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        java-version: ['11', '17', '21']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ matrix.java-version }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ matrix.java-version }}
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Build with Maven
+        run: mvn clean install
+
+      - name: Run tests
+        run: mvn test
+
+      - name: Check code coverage
+        run: mvn jacoco:check
+
+      - name: Run Checkstyle
+        run: mvn checkstyle:check
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./target/site/jacoco/jacoco.xml
+          flags: unittests
+          name: codecov-umbrella
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: '11'
+          distribution: 'temurin'
+
+      - name: Run OWASP Dependency Check
+        run: mvn org.owasp:dependency-check-maven:check
+
+      - name: Run Snyk to check for vulnerabilities
+        uses: snyk/actions/maven@master
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
