@@ -11,7 +11,9 @@ Production-grade SDK for integrating with Zimbabwe Revenue Authority's (ZIMRA) F
 
 - ✅ Full ZIMRA FDMS API v7.2 compliance
 - 🔐 Security-first cryptographic operations
-- 📝 Complete audit logging
+- � X.509 certificate management with CSR generation
+- 🔒 Secure encrypted key storage (AES-256-GCM)
+- �📝 Complete audit logging
 - 🔄 Automatic retry and offline queue
 - 📊 Real-time fiscal day management
 - 🧾 Receipt signing and QR code generation
@@ -67,6 +69,64 @@ public class Example {
         client.closeFiscalDay();
     }
 }
+```
+
+## Certificate Management
+
+The SDK provides comprehensive X.509 certificate management:
+
+```java
+import com.zimra.fdms.crypto.CertificateManager;
+import com.zimra.fdms.crypto.KeyStoreManager;
+import java.security.KeyPair;
+import java.security.PrivateKey;
+import java.security.cert.X509Certificate;
+
+// Certificate Manager
+CertificateManager certManager = new CertificateManager();
+
+// Load existing certificate and key
+X509Certificate cert = certManager.loadCertificate("./device-cert.pem");
+PrivateKey privateKey = certManager.loadPrivateKey("./device-key.pem", "password");
+
+// Generate new RSA key pair (4096-bit recommended)
+KeyPair keyPair = certManager.generateKeyPair(
+    CertificateManager.KeyPairOptions.builder()
+        .keySize(4096)
+        .build()
+);
+
+// Generate CSR for device registration
+String csr = certManager.generateCsr(
+    keyPair.getPrivate(),
+    CertificateManager.CsrOptions.builder()
+        .commonName("DEVICE-12345")
+        .organizationName("My Company")
+        .countryName("ZW")
+        .build()
+);
+
+// Validate certificate
+CertificateManager.ValidationResult validation = certManager.validateCertificate(cert);
+if (!validation.isValid()) {
+    System.err.println("Certificate issues: " + validation.getErrors());
+}
+
+// Secure Key Storage
+KeyStoreManager keyStore = new KeyStoreManager(
+    KeyStoreManager.Options.builder()
+        .storePath("./keystore.json")
+        .password("secure-password")
+        .build()
+);
+
+keyStore.load();
+keyStore.setKeyPair("device-key", privateKey, cert);
+keyStore.save();
+
+// Retrieve later
+PrivateKey storedKey = keyStore.getPrivateKey("device-key");
+X509Certificate storedCert = keyStore.getCertificate("device-key");
 ```
 
 ## Documentation
