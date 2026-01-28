@@ -12,8 +12,7 @@ Production-grade SDK for integrating with Zimbabwe Revenue Authority's (ZIMRA) F
 - ✅ Full ZIMRA FDMS API v7.2 compliance
 - 🔐 Security-first cryptographic operations
 - � X.509 certificate management with CSR generation
-- 🔒 Secure encrypted key storage (AES-256-GCM)
-- �📝 Complete audit logging
+- 🔒 Secure encrypted key storage (AES-256-GCM)- ✍️ RSA-SHA256 digital signatures for receipts- �📝 Complete audit logging
 - 🔄 Automatic retry and offline queue
 - 📊 Real-time fiscal day management
 - 🧾 Receipt signing and QR code generation
@@ -127,6 +126,79 @@ keyStore.save();
 // Retrieve later
 PrivateKey storedKey = keyStore.getPrivateKey("device-key");
 X509Certificate storedCert = keyStore.getCertificate("device-key");
+```
+
+## Digital Signatures
+
+The SDK provides RSA-SHA256 digital signature services for receipts and fiscal day reports:
+
+```java
+import com.zimra.fdms.crypto.SignatureService;
+import com.zimra.fdms.crypto.SignatureService.*;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.Map;
+
+// Create signature service with private key
+SignatureService signatureService = new SignatureService.Builder()
+    .privateKey(Files.readString(Path.of("./device-key.pem")))
+    .privateKeyPassword("password")
+    .enableCache(true)  // Cache signatures for identical data
+    .build();
+
+// Sign a receipt
+SignatureResult receiptResult = signatureService.signReceipt(
+    ReceiptSignatureData.builder()
+        .deviceId(12345)
+        .receiptType("FiscalInvoice")
+        .receiptCurrency("USD")
+        .receiptCounter(1)
+        .receiptGlobalNo(100)
+        .invoiceNo("INV-001")
+        .receiptDate("2025-01-26T10:00:00Z")
+        .receiptLineItems(List.of(
+            ReceiptLineItemData.builder()
+                .lineNo(1).lineDescription("Product A").lineQuantity(2)
+                .lineUnitPrice(500).lineTaxPercent(15).lineTotal(1000).build()
+        ))
+        .receiptTaxes(List.of(
+            ReceiptTaxData.builder()
+                .taxCode("A").taxPercent(15).taxAmount(150).salesAmountWithTax(1150).build()
+        ))
+        .receiptPayments(List.of(
+            ReceiptPaymentData.builder().moneyTypeCode(0).paymentAmount(1150).build()
+        ))
+        .receiptTotal(1150)
+        .build()
+);
+
+System.out.println("Receipt Signature: " + receiptResult.getSignature());
+
+// Sign fiscal day report
+SignatureResult dayResult = signatureService.signFiscalDayReport(
+    FiscalDayReportData.builder()
+        .deviceId(12345)
+        .fiscalDayNo(1)
+        .fiscalDayOpened("2025-01-26T08:00:00Z")
+        .receiptCounter(50)
+        .receiptCounterByType(Map.of("FiscalInvoice", 48, "CreditNote", 2))
+        .totalAmount(125000)
+        .totalTax(16304.35)
+        .totalsByTaxRate(List.of(
+            TaxRateTotalData.builder().taxPercent(15).taxAmount(16304.35).build()
+        ))
+        .build()
+);
+
+System.out.println("Day Signature: " + dayResult.getSignature());
+
+// Verify a signature
+VerificationResult verification = signatureService.verifyReceiptSignature(receiptData, signature);
+if (verification.isValid()) {
+    System.out.println("Signature is valid");
+}
 ```
 
 ## Documentation
