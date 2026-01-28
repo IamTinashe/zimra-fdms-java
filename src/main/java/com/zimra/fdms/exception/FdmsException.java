@@ -2,21 +2,32 @@ package com.zimra.fdms.exception;
 
 /**
  * Base FDMS exception class
+ * 
+ * This is an unchecked exception (RuntimeException) to allow clean API design
+ * while still providing meaningful error codes for FDMS-specific errors.
  */
-public class FdmsException extends Exception {
+public class FdmsException extends RuntimeException {
     private final String code;
     private final Integer statusCode;
 
     public FdmsException(String message) {
-        this(message, null, null);
+        this(message, null, null, null);
     }
 
     public FdmsException(String message, String code) {
-        this(message, code, null);
+        this(message, code, null, null);
     }
 
     public FdmsException(String message, String code, Integer statusCode) {
-        super(message);
+        this(message, code, statusCode, null);
+    }
+
+    public FdmsException(String message, String code, Throwable cause) {
+        this(message, code, null, cause);
+    }
+
+    public FdmsException(String message, String code, Integer statusCode, Throwable cause) {
+        super(message, cause);
         this.code = code;
         this.statusCode = statusCode;
     }
